@@ -1,45 +1,69 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import Menu from "../components/Menu.astro"
 ---
 
 <Layout>
     <div class="h-screen bg-gradient-to-br from-purple-400 to-blue-500 p-4 flex flex-col">
-        <div class="flex-1 flex flex-col max-w-none w-full">
-            {/* Navigation */}
-            <div class="flex gap-4 mb-6">
-                <button class="btn btn-ghost text-white">Home</button>
-                <button class="btn btn-ghost text-white bg-purple-600">
-                    Generator
-                </button>
-                <button class="btn btn-ghost text-white">Library</button>
-            </div>
-
-            {/* Main content area - takes remaining space */}
+    <Menu/>
             <div class="flex gap-4 flex-1 mb-4">
                 <div
-                    class="flex-1 bg-white rounded-lg p-8 flex items-center justify-center">
-                   
+                    class="flex-1 bg-white rounded-lg p-8 flex items-center justify-center"
+                >
                 </div>
 
                 <div
-                    class="flex-1 bg-gray-900 rounded-lg p-4 text-green-400 font-mono text-xs overflow-auto">
-                    
+                    class="flex-1 bg-gray-900 rounded-lg p-4 text-green-400 font-mono text-xs overflow-auto"
+                >
                 </div>
             </div>
 
-            {/* Bottom input area */}
             <div class="flex gap-4 items-center">
                 <input
                     type="text"
-                    value="car"
+                    value=""
                     class="input input-bordered flex-1 bg-white text-black"
                     placeholder="Enter your prompt..."
                 />
                 <button
-                    class="btn bg-red-500 hover:bg-red-600 text-white border-none px-8">
+                    class="btn bg-purple-700 hover:bg-blue-600 text-white border-none px-8"
+                >
                     Generate
                 </button>
             </div>
         </div>
     </div>
 </Layout>
+<script>
+    //@ts-nocheck
+
+    async function generateSVG(prompt) {
+        console.log("Generating SVG for prompt:", prompt);
+        const res = await fetch("/api/generateSVG", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt }),
+        });
+        const data = await res.json();
+        return data.svg;
+    }
+
+    async function handleSubmit() {
+        let prompt = "";
+        let svgCode = "";
+        const promptElement = document.getElementById("user-prompt");
+        prompt = promptElement ? promptElement.value : "";
+        console.log("submitted: ", prompt); // message affiché sur votre console d'inspecteur dans le navigateur
+        const svgContainer = document.getElementById("svg-container");
+        let svgOutput = document.getElementById("svg-output");
+        svgCode = await generateSVG(prompt);
+        console.log("svgCode: ", svgCode);
+        svgOutput.textContent = svgCode;
+        svgContainer.innerHTML = svgCode;
+        generateButton.disabled = false;
+    }
+    const generateButton = document.getElementById("generate-button");
+    if (generateButton) {
+        generateButton.addEventListener("click", handleSubmit);
+    }
+</script>
