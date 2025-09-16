@@ -1,39 +1,45 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import Menu from "../components/Menu.astro"
+import Menu from "../components/Menu.astro";
 ---
 
 <Layout>
-    <div class="h-screen bg-gradient-to-br from-purple-400 to-blue-500 p-4 flex flex-col">
-    <Menu/>
-            <div class="flex gap-4 flex-1 mb-4">
-                <div
-                    class="flex-1 bg-white rounded-lg p-8 flex items-center justify-center"
-                >
-                </div>
-
-                <div
-                    class="flex-1 bg-gray-900 rounded-lg p-4 text-green-400 font-mono text-xs overflow-auto"
-                >
-                </div>
+    <div
+        class="h-screen bg-gradient-to-br from-purple-400 to-blue-500 p-4 flex flex-col"
+    >
+        <Menu />
+        <div class="flex gap-4 flex-1 mb-4">
+            <div
+                class="flex-1 bg-white rounded-lg p-8 flex items-center justify-center"
+                id="svg-container"
+            >
             </div>
 
-            <div class="flex gap-4 items-center">
-                <input
-                    type="text"
-                    value=""
-                    class="input input-bordered flex-1 bg-white text-black"
-                    placeholder="Enter your prompt..."
-                />
-                <button
-                    class="btn bg-purple-700 hover:bg-blue-600 text-white border-none px-8"
-                >
-                    Generate
-                </button>
+            <div
+                class="flex-1 bg-gray-900 rounded-lg p-4 text-green-400 font-mono text-xs overflow-auto"
+                id="svg-output"
+            >
             </div>
+        </div>
+
+        <div class="flex gap-4 items-center">
+            <input
+                type="text"
+                value=""
+                class="input input-bordered flex-1 bg-white text-black"
+                placeholder="Enter your prompt..."
+                id="user-prompt"
+            />
+            <button
+                class="btn bg-purple-700 hover:bg-blue-600 text-white border-none px-8"
+                id="generate-button"
+            >
+                Generate
+            </button>
         </div>
     </div>
 </Layout>
+
 <script>
     //@ts-nocheck
 

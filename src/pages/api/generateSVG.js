@@ -3,6 +3,7 @@ import { OpenAI } from 'openai';
 
 // Récupération du token d'accès à partir des variables d'environnement
 const HF_TOKEN = import.meta.env.HF_TOKEN;
+const NOM_MODEL = import.meta.env.HF_MODEL;
 
 // Fonction exportée pour gérer les requêtes POST
 export const POST = async ({ request }) => {
