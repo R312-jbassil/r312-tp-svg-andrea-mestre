@@ -46,10 +46,16 @@ try {
                                 <div class="text-sm text-gray-500 mt-2">
                                     <p><strong>Created:</strong> {new Date(svg.created).toLocaleDateString()}</p>
                                     {svg.prompt && (
-                                        <p class="mt-1"><strong>Prompt:</strong> {svg.prompt}</p>
+                                        <p class="mt-1 truncate"><strong>Prompt:</strong> {svg.prompt}</p>
                                     )}
                                 </div>
                                 <div class="card-actions justify-end mt-4">
+                                    <a 
+                                        href={`/gallery/${svg.id}`}
+                                        class="btn btn-sm bg-purple-600 hover:bg-purple-700 text-white border-none"
+                                    >
+                                        View Details
+                                    </a>
                                     <button 
                                         class="btn btn-sm bg-blue-600 hover:bg-blue-700 text-white border-none"
                                         onclick={`navigator.clipboard.writeText(\`${svg.code.replace(/`/g, '\\`')}\`); alert('SVG code copied to clipboard!')`}

@@ -1,0 +1,193 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import PocketBase from 'pocketbase';
+
+// Récupération de l'ID depuis les paramètres de l'URL
+const { id } = Astro.params;
+
+// Connexion à PocketBase
+const pb = new PocketBase('http://127.0.0.1:8090');
+
+// Récupération du SVG spécifique
+let svg = null;
+let error = null;
+
+try {
+    svg = await pb.collection('svgs').getOne(id);
+} catch (e) {
+    error = "SVG non trouvé";
+    console.error("Erreur lors de la récupération du SVG:", e);
+}
+
+// Parser l'historique si disponible (supposant qu'il est stocké en JSON)
+let conversationHistory = [];
+if (svg && svg.history) {
+    try {
+        conversationHistory = JSON.parse(svg.history);
+    } catch (e) {
+        console.error("Erreur lors du parsing de l'historique:", e);
+    }
+}
+---
+
+<Layout>
+    <div class="min-h-screen bg-gradient-to-br from-purple-400 to-blue-500 p-8">
+        <div class="max-w-6xl mx-auto">
+            <!-- Header avec navigation -->
+            <div class="flex justify-between items-center mb-8">
+                <h1 class="text-4xl font-bold text-white">SVG Details</h1>
+                <div class="flex gap-4">
+                    <a href="/library" class="btn bg-purple-700 hover:bg-purple-800 text-white border-none">
+                        ← Back to Library
+                    </a>
+                    <a href="/generator" class="btn bg-blue-600 hover:bg-blue-700 text-white border-none">
+                        New SVG
+                    </a>
+                </div>
+            </div>
+
+            {error ? (
+                <!-- Message d'erreur -->
+                <div class="bg-red-100 border border-red-400 text-red-700 px-6 py-4 rounded-lg">
+                    <h2 class="text-2xl font-bold mb-2">Error</h2>
+                    <p>{error}</p>
+                    <a href="/library" class="btn bg-red-600 hover:bg-red-700 text-white border-none mt-4">
+                        Return to Library
+                    </a>
+                </div>
+            ) : svg && (
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Colonne gauche : Informations et SVG -->
+                    <div class="space-y-6">
+                        <!-- Carte d'informations -->
+                        <div class="card bg-white shadow-xl">
+                            <div class="card-body">
+                                <h2 class="card-title text-2xl text-gray-800">{svg.name}</h2>
+                                <div class="divider"></div>
+                                <div class="space-y-2 text-gray-700">
+                                    <p><strong>Created:</strong> {new Date(svg.created).toLocaleString()}</p>
+                                    <p><strong>Last Updated:</strong> {new Date(svg.updated).toLocaleString()}</p>
+                                    {svg.date && (
+                                        <p><strong>Date:</strong> {new Date(svg.date).toLocaleDateString()}</p>
+                                    )}
+                                    {svg.prompt && (
+                                        <div>
+                                            <strong>Initial Prompt:</strong>
+                                            <p class="bg-gray-100 p-3 rounded mt-1 italic">{svg.prompt}</p>
+                                        </div>
+                                    )}
+                                </div>
+                                <div class="card-actions justify-end mt-4">
+                                    <button 
+                                        class="btn btn-sm bg-blue-600 hover:bg-blue-700 text-white border-none"
+                                        id="copy-code-btn"
+                                    >
+                                        📋 Copy Code
+                                    </button>
+                                    <button 
+                                        class="btn btn-sm bg-green-600 hover:bg-green-700 text-white border-none"
+                                        id="download-svg-btn"
+                                    >
+                                        💾 Download SVG
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Affichage du SVG -->
+                        <div class="card bg-white shadow-xl">
+                            <div class="card-body">
+                                <h3 class="card-title text-xl text-gray-800">SVG Preview</h3>
+                                <div class="bg-gray-50 rounded-lg p-8 flex items-center justify-center min-h-[400px]">
+                                    <div set:html={svg.code} class="max-w-full max-h-full" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Colonne droite : Historique de conversation et code -->
+                    <div class="space-y-6">
+                        <!-- Historique de conversation -->
+                        {conversationHistory.length > 0 && (
+                            <div class="card bg-white shadow-xl">
+                                <div class="card-body">
+                                    <h3 class="card-title text-xl text-gray-800">Conversation History</h3>
+                                    <div class="divider"></div>
+                                    <div class="space-y-4 max-h-[500px] overflow-y-auto">
+                                        {conversationHistory.map((message, index) => (
+                                            <div 
+                                                class={`p-4 rounded-lg ${
+                                                    message.role === 'user' 
+                                                        ? 'bg-blue-100 ml-4' 
+                                                        : message.role === 'assistant'
+                                                        ? 'bg-green-100 mr-4'
+                                                        : 'bg-gray-100'
+                                                }`}
+                                            >
+                                                <div class="flex items-center gap-2 mb-2">
+                                                    <span class="font-bold text-sm">
+                                                        {message.role === 'user' ? '👤 User' : 
+                                                         message.role === 'assistant' ? '🤖 Assistant' : 
+                                                         '⚙️ System'}
+                                                    </span>
+                                                    <span class="text-xs text-gray-500">#{index + 1}</span>
+                                                </div>
+                                                <p class="text-sm text-gray-700 whitespace-pre-wrap">{message.content}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        <!-- Code SVG -->
+                        <div class="card bg-gray-900 shadow-xl">
+                            <div class="card-body">
+                                <h3 class="card-title text-xl text-green-400">SVG Code</h3>
+                                <div class="divider"></div>
+                                <pre class="text-green-400 font-mono text-xs overflow-auto max-h-[400px] bg-gray-800 p-4 rounded"><code>{svg.code}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    </div>
+</Layout>
+
+<script define:vars={{ svgCode: svg?.code, svgName: svg?.name }}>
+    //@ts-nocheck
+    
+    // Copier le code dans le presse-papier
+    const copyBtn = document.getElementById('copy-code-btn');
+    if (copyBtn && svgCode) {
+        copyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(svgCode);
+            copyBtn.textContent = '✅ Copied!';
+            setTimeout(() => {
+                copyBtn.textContent = '📋 Copy Code';
+            }, 2000);
+        });
+    }
+
+    // Télécharger le SVG
+    const downloadBtn = document.getElementById('download-svg-btn');
+    if (downloadBtn && svgCode && svgName) {
+        downloadBtn.addEventListener('click', () => {
+            const blob = new Blob([svgCode], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${svgName}.svg`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            downloadBtn.textContent = '✅ Downloaded!';
+            setTimeout(() => {
+                downloadBtn.textContent = '💾 Download SVG';
+            }, 2000);
+        });
+    }
+</script>
