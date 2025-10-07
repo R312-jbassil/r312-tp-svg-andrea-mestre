@@ -12,5 +12,6 @@ declare namespace App {
             created: string;
             updated: string;
         };
+        lang?: 'en' | 'fr';
     }
 }

@@ -1,30 +1,58 @@
 ---
+import { ui } from '../i18n/ui.js';
+
 const user = Astro.locals.user;
+const locale = Astro.locals.lang ?? 'fr';
 ---
 
 <div>
     <div class="flex gap-4 mb-6 items-center">
-        <a href="/" class="btn btn-ghost text-white">Home</a>
+        <a href="/" class="btn btn-ghost text-white">{ui[locale].nav.home}</a>
         <a href="/generator" class="btn btn-ghost text-white bg-purple-600">
-            Generator
+            {ui[locale].nav.generator}
         </a>
-        <a href="/library" class="btn btn-ghost text-white">Library</a>
+        <a href="/library" class="btn btn-ghost text-white">{ui[locale].nav.library}</a>
         
         <div class="flex-1"></div>
+
+        <!-- Sélecteur de langue -->
+        <form method="POST" action={Astro.url.pathname} class="m-0">
+            <select 
+                name="language" 
+                class="select select-bordered select-sm bg-white text-gray-700 font-medium shadow-md hover:shadow-lg transition-shadow cursor-pointer border-2 border-white hover:border-gray-200 focus:border-gray-300 focus:outline-none" 
+                onchange="this.form.submit()"
+            >
+                <option value="en" selected={locale === "en"}>
+                    {locale === "en" ? "🇬🇧 English ✓" : "🇬🇧 English"}
+                </option>
+                <option value="fr" selected={locale === "fr"}>
+                    {locale === "fr" ? "🇫🇷 Français ✓" : "🇫🇷 Français"}
+                </option>
+            </select>
+        </form>
         
-        {user && (
+        {user ? (
             <div class="flex items-center gap-3">
                 <span class="text-white text-sm">
-                    👤 {user.email}
+                    👤 {user.name || user.email}
                 </span>
                 <form action="/api/logout" method="POST">
                     <button 
                         type="submit"
                         class="btn btn-sm bg-red-600 hover:bg-red-700 text-white border-none"
                     >
-                        Logout
+                        {ui[locale].nav.logout}
                     </button>
                 </form>
+            </div>
+        ) : (
+            <div class="flex items-center gap-2">
+                <a href="/login" class="btn btn-sm bg-blue-600 hover:bg-blue-700 text-white border-none">
+                    {ui[locale].nav.login}
+                </a>
+                <a href="/signup" class="btn btn-sm bg-green-600 hover:bg-green-700 text-white border-none">
+                    {ui[locale].nav.signup}
+                </a>
             </div>
         )}
     </div>

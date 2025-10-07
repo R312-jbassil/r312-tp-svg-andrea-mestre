@@ -1,6 +1,9 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import Menu from "../components/Menu.astro";
+import { ui } from "../i18n/ui.js";
+
+const locale = Astro.locals.lang ?? 'fr';
 ---
 
 <Layout>
@@ -9,9 +12,9 @@ import Menu from "../components/Menu.astro";
       <Menu />
     </div>
     <div class="flex-1 flex flex-col items-center justify-center">
-      <h1 class="text-4xl font-bold mb-4 text-white">Welcome to SVG Generator</h1>
-      <p class="mb-6 text-lg text-white">Create and render SVGs from prompts.</p>
-      <a href="generator" class="btn btn-secondary">Go to SVG Generator</a>
+      <h1 class="text-4xl font-bold mb-4 text-white">{ui[locale].index.title}</h1>
+      <p class="mb-6 text-lg text-white">{ui[locale].index.description}</p>
+      <a href="generator" class="btn btn-secondary">{ui[locale].index.button}</a>
     </div>
   </div>
 </Layout>
