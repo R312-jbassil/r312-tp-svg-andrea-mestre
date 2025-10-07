@@ -48,12 +48,15 @@ import Menu from "../components/Menu.astro";
 <script>
     //@ts-nocheck
 
-    async function generateSVG(prompt) {
-        console.log("Generating SVG for prompt:", prompt);
+    // Liste qui contiendra l'historique des échanges
+    let promptList = [];
+
+    async function generateSVG(messages) {
+        console.log("Generating SVG for messages:", messages);
         const res = await fetch("/api/generateSVG", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({prompt}),
+            body: JSON.stringify(messages),
         });
         const data = await res.json();
         return data.svg;
@@ -61,16 +64,39 @@ import Menu from "../components/Menu.astro";
 
     async function handleSubmit() {
         let prompt = "";
-        let svgCode = "";
+        let aiResponse = "";
         const promptElement = document.getElementById("user-prompt");
         prompt = promptElement ? promptElement.value : "";
-        console.log("submitted: ", prompt); // message affiché sur votre console d'inspecteur dans le navigateur
+        console.log("submitted: ", prompt);
+        
+        // Réinitialiser la liste des prompts
+        promptList.length = 0; 
+        promptList.push({ role: "user", content: prompt });
+        
         const svgContainer = document.getElementById("svg-container");
+        
+        // Afficher un spinner
+        svgContainer.innerHTML = `<span class="loading loading-ring loading-xl"></span>`;
+        generateButton.disabled = true;
+        
         let svgOutput = document.getElementById("svg-output");
-        svgCode = await generateSVG(prompt);
-        console.log("svgCode: ", svgCode);
-        svgOutput.textContent = svgCode;
-        svgContainer.innerHTML = svgCode;
+        
+        // Appeler la fonction pour générer le SVG
+        aiResponse = await generateSVG(promptList);
+        
+        // Extraire le SVG de la réponse
+        const svgMatch = aiResponse.content.match(/<svg[\s\S]*?<\/svg>/i);
+        aiResponse.content = svgMatch ? svgMatch[0] : "";
+        console.log("svgCode: ", aiResponse.content);
+        
+        // Ajouter la réponse de l'IA à la liste des prompts
+        promptList.push(aiResponse);
+        
+        // Afficher le SVG généré
+        svgOutput.textContent = aiResponse.content;
+        svgContainer.innerHTML = aiResponse.content;
+        
+        // Réactiver les boutons
         generateButton.disabled = false;
     }
 

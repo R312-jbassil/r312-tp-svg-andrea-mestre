@@ -7,63 +7,45 @@ const NOM_MODEL = import.meta.env.HF_MODEL;
 const HF_URL = import.meta.env.HF_URL;
 
 export const POST = async ({ request }) => {
-    // Debug des variables d'environnement
-    console.log("Debug env vars:", { 
-        HF_TOKEN: HF_TOKEN ? "✓ défini" : "✗ manquant", 
-        HF_URL, 
-        NOM_MODEL 
-    });
+    // Affiche la requête dans la console pour le débogage
+    console.log(request);
 
-    // Vérification que le token est bien défini
-    if (!HF_TOKEN) {
-        return new Response(JSON.stringify({ error: "Token API manquant" }), {
-            status: 500,
-            headers: { "Content-Type": "application/json" }
-        });
-    }
-
-    // Extraction du prompt du corps de la requête
-    const { prompt } = await request.json();
-
+    // Extraction des message du corps de la requête
+    const messages = await request.json();
+    
     // Initialisation du client OpenAI avec l'URL de base et le token d'API
     const client = new OpenAI({
         baseURL: HF_URL, // URL de l'API
         apiKey: HF_TOKEN, // Token d'accès pour l'API
     });
-
+    
     // Création du message système pour guider le modèle
-    let SystemMessage =
-    {
-        role: "system", // Rôle du message
-        content: "You are an SVG code generator. Generate SVG code for the following messages. Make sure to include ids for each part of the generated SVG.", // Contenu du message
-    };
-
-    // Message utilisateur avec le prompt
-    let UserMessage = {
-        role: "user",
-        content: prompt
-    };
-
+    let SystemMessage = 
+        {
+            role: "system", // Rôle du message
+            content: "You are an SVG code generator. Generate SVG code for the following messages. Make sure to include ids for each part of the generated SVG.", // Contenu du message
+        };
+    
     // Appel à l'API pour générer le code SVG en utilisant le modèle spécifié
     const chatCompletion = await client.chat.completions.create({
-        model: NOM_MODEL, // Nom du modèle à utiliser (sans guillemets pour utiliser la variable)
-        messages: [SystemMessage, UserMessage] // Messages envoyés au modèle
+        model: NOM_MODEL, // Nom du modèle à utiliser
+        messages: [SystemMessage, ...messages] // Messages envoyés au modèle, incluant le message système et l'historique des messages
     });
-
+    
     // Récupération du message généré par l'API
     const message = chatCompletion.choices[0].message || "";
-
+    
     // Affiche le message généré dans la console pour le débogage
     console.log("Generated SVG:", message);
-
+    
     // Recherche d'un élément SVG dans le message généré
     const svgMatch = message.content.match(/<svg[\s\S]*?<\/svg>/i);
-
+    
     // Si un SVG est trouvé, le remplace dans le message, sinon laisse une chaîne vide
-    const svgContent = svgMatch ? svgMatch[0] : "";
-
+    message.content = svgMatch ? svgMatch[0] : "";
+    
     // Retourne une réponse JSON contenant le SVG généré
-    return new Response(JSON.stringify({ svg: svgContent }), {
+    return new Response(JSON.stringify({ svg: message }), {
         headers: { "Content-Type": "application/json" }, // Définit le type de contenu de la réponse
     });
 };
