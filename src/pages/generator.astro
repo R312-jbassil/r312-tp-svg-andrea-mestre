@@ -54,6 +54,9 @@ import Menu from "../components/Menu.astro";
 <script>
     //@ts-nocheck
 
+    // Récupérer les informations de l'utilisateur depuis le localStorage
+    const user = JSON.parse(localStorage.getItem("user"));
+    
     // Liste qui contiendra l'historique des échanges
     let promptList = [];
 
@@ -191,6 +194,7 @@ import Menu from "../components/Menu.astro";
                     code: svgCode,
                     prompt: prompt,
                     history: historyToSave, // Sauvegarder l'historique complet
+                    user: user?.id, // Ajouter l'ID de l'utilisateur
                 }),
             });
 

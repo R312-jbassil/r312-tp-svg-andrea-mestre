@@ -1,0 +1,142 @@
+---
+if (Astro.locals.user) {
+    // Si l'utilisateur est déjà connecté, on le redirige vers la page d'accueil
+    return Astro.redirect("/");
+}
+---
+<html lang="en" data-theme="light">
+    <head>
+        <title>SVG Generator</title>
+        <meta name="viewport" content="width=device-width" />
+        <link href="https://cdn.jsdelivr.net/npm/daisyui@3.8.0/dist/full.css" rel="stylesheet" type="text/css" />
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-400 to-blue-500 p-4">
+        <div class="card w-full max-w-md shadow-2xl bg-base-100">
+            <div class="card-body">
+                
+                <!-- Formulaire d'inscription -->
+                <form id="signup-form" class="space-y-4">
+                    
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Email</span>
+                        </label>
+                        <input 
+                            type="email" 
+                            name="email" 
+                            placeholder="exemple@email.com" 
+                            required 
+                            class="input input-bordered w-full" 
+                        />
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Mot de passe</span>
+                        </label>
+                        <input 
+                            type="password" 
+                            name="password" 
+                            placeholder="••••••••" 
+                            required 
+                            minlength="8"
+                            class="input input-bordered w-full" 
+                        />
+                        <label class="label">
+                            <span class="label-text-alt">Minimum 8 caracteres</span>
+                        </label>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Confirmer le mot de passe</span>
+                        </label>
+                        <input 
+                            type="password" 
+                            name="passwordConfirm" 
+                            placeholder="••••••••" 
+                            required 
+                            minlength="8"
+                            class="input input-bordered w-full" 
+                        />
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-full mt-6">Créer mon compte</button>
+                </form>
+
+                <!-- Zone d'affichage du statut -->
+                <div id="status" class="mt-4"></div>
+
+                <!-- Lien vers la page de connexion -->
+                <div class="divider">OU</div>
+                <a href="/login" class="btn btn-outline btn-primary w-full">Se connecter</a>
+            </div>
+        </div>
+    </body>
+</html>
+
+<script>
+    //@ts-nocheck
+    const form = document.getElementById("signup-form");
+    const status = document.getElementById("status");
+
+    // Gestion de la soumission du formulaire
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+
+        const password = formData.get("password");
+        const passwordConfirm = formData.get("passwordConfirm");
+
+        // Vérification que les mots de passe correspondent
+        if (password !== passwordConfirm) {
+            status.innerHTML = '<div class="alert alert-error"><span>❌ Les mots de passe ne correspondent pas</span></div>';
+            return;
+        }
+
+        // Désactiver le bouton pendant l'inscription
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="loading loading-spinner"></span> Création en cours...';
+        status.innerHTML = "";
+
+        try {
+            // Envoi des informations au serveur via l'API /api/signup
+            const res = await fetch("/api/signup", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    username: formData.get("username"),
+                    email: formData.get("email"),
+                    password: formData.get("password"),
+                    passwordConfirm: formData.get("passwordConfirm"),
+                }),
+            });
+
+            // Traitement de la réponse
+            if (res.ok) {
+                const resData = await res.json();
+                status.innerHTML = '<div class="alert alert-success"><span>✅ Compte créé avec succès ! Redirection...</span></div>';
+                
+                // Sauvegarder les infos utilisateur et rediriger
+                localStorage.setItem("user", JSON.stringify(resData.user));
+                
+                // Redirection vers la page d'accueil après un court délai
+                setTimeout(() => {
+                    window.location.href = "/";
+                }, 1500);
+            } else {
+                const errorData = await res.json();
+                status.innerHTML = `<div class="alert alert-error"><span>❌ ${errorData.error || "Erreur lors de la création du compte"}</span></div>`;
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Créer mon compte";
+            }
+        } catch (error) {
+            status.innerHTML = '<div class="alert alert-error"><span>❌ Erreur de connexion au serveur</span></div>';
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Créer mon compte";
+        }
+    });
+</script>

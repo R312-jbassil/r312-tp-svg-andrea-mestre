@@ -21,6 +21,7 @@ export interface SvgRecord extends BaseRecord {
 	date?: string;
 	prompt?: string;
 	history?: string; // JSON string containing conversation history
+	user?: string; // ID of the user who created the SVG
 }
 
 // Response type includes expand
