@@ -19,9 +19,11 @@ export const POST = async ({ request }) => {
         // Données à sauvegarder (adapter aux champs de votre collection)
         const data = {
             name: name || `SVG_${new Date().toISOString().slice(0, 19)}`,
-            code: code  // Le code SVG généré
+            code: code,  // Le code SVG généré
+            date: new Date().toISOString().slice(0, 19).replace('T', ' '),  // Format: YYYY-MM-DD HH:mm:ss
+            prompt: prompt || ""  // Le prompt utilisé pour générer le SVG
         };
-        console.log("Données à sauvegarder:", { name: data.name, codeLength: data.code.length });
+        console.log("Données à sauvegarder:", { name: data.name, codeLength: data.code.length, prompt: data.prompt, date: data.date });
 
         // Sauvegarde dans la collection 'svgs'
         console.log("Envoi vers PocketBase...");
