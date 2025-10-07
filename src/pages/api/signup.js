@@ -3,10 +3,10 @@ import { Collections } from "../../utils/pocketbase-types";
 
 export const POST = async ({ request, cookies }) => {
     try {
-        const { username, email, password, passwordConfirm } = await request.json();
+        const { name, email, password, passwordConfirm } = await request.json();
 
         // Validation des données
-        if (!username || !email || !password || !passwordConfirm) {
+        if (!name || !email || !password || !passwordConfirm) {
             return new Response(
                 JSON.stringify({ error: "Tous les champs sont requis" }),
                 { status: 400, headers: { "Content-Type": "application/json" } }
@@ -27,16 +27,20 @@ export const POST = async ({ request, cookies }) => {
             );
         }
 
+        // Générer un username unique à partir de l'email
+        const username = email.split('@')[0] + '_' + Date.now().toString().slice(-6);
+
         // Création de l'utilisateur dans PocketBase
         const userData = {
             username,
+            name,
             email,
             password,
             passwordConfirm,
             emailVisibility: true,
         };
 
-        console.log("Création de l'utilisateur:", { username, email });
+        console.log("Création de l'utilisateur:", { username, name, email });
         
         const user = await pb.collection(Collections.Users).create(userData);
         
@@ -62,6 +66,7 @@ export const POST = async ({ request, cookies }) => {
                     id: authData.record.id,
                     email: authData.record.email,
                     username: authData.record.username,
+                    name: authData.record.name,
                 },
             }),
             { status: 200, headers: { "Content-Type": "application/json" } }

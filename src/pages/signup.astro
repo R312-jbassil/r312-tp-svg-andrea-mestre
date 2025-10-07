@@ -17,7 +17,18 @@ if (Astro.locals.user) {
                 
                 <!-- Formulaire d'inscription -->
                 <form id="signup-form" class="space-y-4">
-                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Pseudo</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            name="name" 
+                            placeholder="Votre pseudo" 
+                            required 
+                            class="input input-bordered w-full" 
+                        />
+                    </div>
 
                     <div class="form-control">
                         <label class="label">
@@ -63,7 +74,7 @@ if (Astro.locals.user) {
                         />
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-full mt-6">Créer mon compte</button>
+                    <button type="submit" class="btn btn-primary w-full mt-6">Creer mon compte</button>
                 </form>
 
                 <!-- Zone d'affichage du statut -->
@@ -108,7 +119,7 @@ if (Astro.locals.user) {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    username: formData.get("username"),
+                    name: formData.get("name"),
                     email: formData.get("email"),
                     password: formData.get("password"),
                     passwordConfirm: formData.get("passwordConfirm"),
