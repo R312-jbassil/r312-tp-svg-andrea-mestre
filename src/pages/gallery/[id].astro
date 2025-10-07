@@ -1,26 +1,26 @@
 ---
 import Layout from "../../layouts/Layout.astro";
-import PocketBase from 'pocketbase';
+import pb from "../../utils/pb";
+import { Collections, type SvgRecord } from "../../utils/pocketbase-types";
 
-// Récupération de l'ID depuis les paramètres de l'URL
-const { id } = Astro.params;
+const id = Astro.params.id;
 
-// Connexion à PocketBase
-const pb = new PocketBase('http://127.0.0.1:8090');
+if (!id) {
+    return Astro.redirect('/library');
+}
 
-// Récupération du SVG spécifique
-let svg = null;
-let error = null;
+let svg: SvgRecord | null = null;
+let error: string | null = null;
 
 try {
-    svg = await pb.collection('svgs').getOne(id);
+    svg = await pb.collection(Collections.Svg).getOne(id);
 } catch (e) {
     error = "SVG non trouvé";
     console.error("Erreur lors de la récupération du SVG:", e);
 }
 
 // Parser l'historique si disponible (supposant qu'il est stocké en JSON)
-let conversationHistory = [];
+let conversationHistory: Array<{role: string, content: string}> = [];
 if (svg && svg.history) {
     try {
         conversationHistory = JSON.parse(svg.history);
@@ -31,127 +31,122 @@ if (svg && svg.history) {
 ---
 
 <Layout>
-    <div class="min-h-screen bg-gradient-to-br from-purple-400 to-blue-500 p-8">
-        <div class="max-w-6xl mx-auto">
+    <div class="h-screen bg-gradient-to-br from-purple-400 to-blue-500 flex flex-col">
+        <div class="flex-none p-4">
             <!-- Header avec navigation -->
-            <div class="flex justify-between items-center mb-8">
-                <h1 class="text-4xl font-bold text-white">SVG Details</h1>
-                <div class="flex gap-4">
-                    <a href="/library" class="btn bg-purple-700 hover:bg-purple-800 text-white border-none">
-                        ← Back to Library
+            <div class="flex justify-between items-center">
+                <h1 class="text-3xl font-bold text-white">{svg?.name || 'SVG Details'}</h1>
+                <div class="flex gap-2">
+                    <a href="/library" class="btn btn-sm bg-purple-700 hover:bg-purple-800 text-white border-none">
+                        ← Library
                     </a>
-                    <a href="/generator" class="btn bg-blue-600 hover:bg-blue-700 text-white border-none">
+                    <a href="/generator" class="btn btn-sm bg-blue-600 hover:bg-blue-700 text-white border-none">
                         New SVG
                     </a>
                 </div>
             </div>
+        </div>
 
-            {error ? (
-                <!-- Message d'erreur -->
-                <div class="bg-red-100 border border-red-400 text-red-700 px-6 py-4 rounded-lg">
+        {error ? (
+            <!-- Message d'erreur -->
+            <div class="flex-1 flex items-center justify-center p-8">
+                <div class="bg-red-100 border border-red-400 text-red-700 px-6 py-4 rounded-lg max-w-md">
                     <h2 class="text-2xl font-bold mb-2">Error</h2>
                     <p>{error}</p>
                     <a href="/library" class="btn bg-red-600 hover:bg-red-700 text-white border-none mt-4">
                         Return to Library
                     </a>
                 </div>
-            ) : svg && (
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Colonne gauche : Informations et SVG -->
-                    <div class="space-y-6">
-                        <!-- Carte d'informations -->
-                        <div class="card bg-white shadow-xl">
-                            <div class="card-body">
-                                <h2 class="card-title text-2xl text-gray-800">{svg.name}</h2>
-                                <div class="divider"></div>
-                                <div class="space-y-2 text-gray-700">
-                                    <p><strong>Created:</strong> {new Date(svg.created).toLocaleString()}</p>
-                                    <p><strong>Last Updated:</strong> {new Date(svg.updated).toLocaleString()}</p>
-                                    {svg.date && (
-                                        <p><strong>Date:</strong> {new Date(svg.date).toLocaleDateString()}</p>
-                                    )}
-                                    {svg.prompt && (
-                                        <div>
-                                            <strong>Initial Prompt:</strong>
-                                            <p class="bg-gray-100 p-3 rounded mt-1 italic">{svg.prompt}</p>
-                                        </div>
-                                    )}
-                                </div>
-                                <div class="card-actions justify-end mt-4">
-                                    <button 
-                                        class="btn btn-sm bg-blue-600 hover:bg-blue-700 text-white border-none"
-                                        id="copy-code-btn"
-                                    >
-                                        📋 Copy Code
-                                    </button>
-                                    <button 
-                                        class="btn btn-sm bg-green-600 hover:bg-green-700 text-white border-none"
-                                        id="download-svg-btn"
-                                    >
-                                        💾 Download SVG
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Affichage du SVG -->
-                        <div class="card bg-white shadow-xl">
-                            <div class="card-body">
-                                <h3 class="card-title text-xl text-gray-800">SVG Preview</h3>
-                                <div class="bg-gray-50 rounded-lg p-8 flex items-center justify-center min-h-[400px]">
-                                    <div set:html={svg.code} class="max-w-full max-h-full" />
-                                </div>
-                            </div>
-                        </div>
+            </div>
+        ) : svg && (
+            <div class="flex-1 flex gap-4 p-4 overflow-hidden">
+                <!-- Partie gauche : SVG Display -->
+                <div class="w-1/2 flex flex-col gap-4">
+                    <!-- SVG Preview -->
+                    <div class="flex-1 bg-white rounded-lg shadow-xl p-6 flex items-center justify-center overflow-auto">
+                        <div id="svg-display" set:html={svg.code} class="max-w-full max-h-full" />
                     </div>
-
-                    <!-- Colonne droite : Historique de conversation et code -->
-                    <div class="space-y-6">
-                        <!-- Historique de conversation -->
-                        {conversationHistory.length > 0 && (
-                            <div class="card bg-white shadow-xl">
-                                <div class="card-body">
-                                    <h3 class="card-title text-xl text-gray-800">Conversation History</h3>
-                                    <div class="divider"></div>
-                                    <div class="space-y-4 max-h-[500px] overflow-y-auto">
-                                        {conversationHistory.map((message, index) => (
-                                            <div 
-                                                class={`p-4 rounded-lg ${
-                                                    message.role === 'user' 
-                                                        ? 'bg-blue-100 ml-4' 
-                                                        : message.role === 'assistant'
-                                                        ? 'bg-green-100 mr-4'
-                                                        : 'bg-gray-100'
-                                                }`}
-                                            >
-                                                <div class="flex items-center gap-2 mb-2">
-                                                    <span class="font-bold text-sm">
-                                                        {message.role === 'user' ? '👤 User' : 
-                                                         message.role === 'assistant' ? '🤖 Assistant' : 
-                                                         '⚙️ System'}
-                                                    </span>
-                                                    <span class="text-xs text-gray-500">#{index + 1}</span>
-                                                </div>
-                                                <p class="text-sm text-gray-700 whitespace-pre-wrap">{message.content}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        <!-- Code SVG -->
-                        <div class="card bg-gray-900 shadow-xl">
-                            <div class="card-body">
-                                <h3 class="card-title text-xl text-green-400">SVG Code</h3>
-                                <div class="divider"></div>
-                                <pre class="text-green-400 font-mono text-xs overflow-auto max-h-[400px] bg-gray-800 p-4 rounded"><code>{svg.code}</code></pre>
-                            </div>
+                    
+                    <!-- Actions -->
+                    <div class="flex-none bg-white rounded-lg shadow-xl p-4">
+                        <div class="flex gap-2 justify-end">
+                            <button 
+                                class="btn btn-sm bg-blue-600 hover:bg-blue-700 text-white border-none"
+                                id="copy-code-btn"
+                            >
+                                📋 Copy Code
+                            </button>
+                            <button 
+                                class="btn btn-sm bg-green-600 hover:bg-green-700 text-white border-none"
+                                id="download-svg-btn"
+                            >
+                                💾 Download
+                            </button>
                         </div>
                     </div>
                 </div>
-            )}
-        </div>
+
+                <!-- Partie droite : Chat Interface -->
+                <div class="w-1/2 bg-white rounded-lg shadow-xl flex flex-col overflow-hidden">
+                    <!-- Chat Header -->
+                    <div class="flex-none p-4 bg-gradient-to-r from-purple-600 to-blue-600">
+                        <h3 class="text-xl font-bold text-white">Chat History</h3>
+                        <p class="text-sm text-white/80">Conversation with AI</p>
+                    </div>
+                    
+                    <div class="divider my-0"></div>
+                    
+                    <!-- Chat History -->
+                    <div id="chat-history" class="flex flex-col gap-4 p-4 overflow-y-auto flex-grow">
+                        {
+                            (Array.isArray(conversationHistory) && conversationHistory.length > 0) ? (
+                                conversationHistory.map((msg: { role: string; content: string; }) => (
+                                    <div class={`chat ${msg.role === 'user' ? 'chat-start' : 'chat-end'}`}>
+                                        <div class="chat-header opacity-60 text-xs mb-1">
+                                            {msg.role === 'user' ? '👤 User' : '🤖 Assistant'}
+                                        </div>
+                                        <div class={`chat-bubble ${msg.role === 'user' ? 'bg-primary text-primary-content' : 'bg-secondary text-secondary-content'}`}>
+                                            <pre class="whitespace-pre-wrap text-sm">{msg.content}</pre>
+                                        </div>
+                                        <div class="chat-footer opacity-60 text-xs mt-1">{msg.role}</div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div class="flex items-center justify-center h-full">
+                                    <span class="text-error text-center">
+                                        <p class="text-2xl mb-2">💬</p>
+                                        <p>Aucun historique de chat disponible.</p>
+                                    </span>
+                                </div>
+                            )
+                        }
+                    </div>
+                    
+                    <div class="divider my-0"></div>
+                    
+                    <!-- Chat Input -->
+                    <div class="flex-none p-4 bg-gray-50">
+                        <form id="chat-form" class="flex gap-2">
+                            <input 
+                                type="text" 
+                                id="chat-input"
+                                placeholder="Type a message to modify the SVG..." 
+                                class="input input-bordered flex-1"
+                                disabled
+                            />
+                            <button 
+                                type="submit"
+                                class="btn bg-purple-600 hover:bg-purple-700 text-white border-none"
+                                disabled
+                            >
+                                Send
+                            </button>
+                        </form>
+                        <p class="text-xs text-gray-500 mt-2">💡 Chat functionality coming soon!</p>
+                    </div>
+                </div>
+            </div>
+        )}
     </div>
 </Layout>
 

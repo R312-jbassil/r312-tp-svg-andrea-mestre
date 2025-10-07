@@ -163,6 +163,10 @@ import Menu from "../components/Menu.astro";
         const svgCode = svgOutput.textContent;
         const prompt = promptElement ? promptElement.value : "";
 
+        // Vérifier que promptList contient des données
+        console.log("📝 Historique à sauvegarder:", promptList);
+        console.log("📊 Nombre de messages:", promptList.length);
+
         // Demander un nom pour le SVG
         const name = window.prompt(
             "Nom pour votre SVG :",
@@ -176,6 +180,9 @@ import Menu from "../components/Menu.astro";
             saveButton.disabled = true;
             saveButton.textContent = "Sauvegarde...";
 
+            const historyToSave = promptList.length > 0 ? JSON.stringify(promptList) : "[]";
+            console.log("💾 History string à envoyer:", historyToSave);
+
             const response = await fetch("/api/saveSVG", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -183,6 +190,7 @@ import Menu from "../components/Menu.astro";
                     name: name,
                     code: svgCode,
                     prompt: prompt,
+                    history: historyToSave, // Sauvegarder l'historique complet
                 }),
             });
 

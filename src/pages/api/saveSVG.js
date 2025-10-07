@@ -4,8 +4,8 @@ const pb = new PocketBase('http://127.0.0.1:8090');
 export const POST = async ({ request }) => {
     try {
         // Récupération des données depuis le frontend
-        const { name, code, prompt } = await request.json();
-        console.log("Données reçues:", { name, code: code?.substring(0, 50) + "...", prompt });
+        const { name, code, prompt, history } = await request.json();
+        console.log("Données reçues:", { name, code: code?.substring(0, 50) + "...", prompt, history: history ? "✓" : "✗" });
         
         if (!code) {
             console.log("Erreur: Code SVG manquant");
@@ -21,9 +21,17 @@ export const POST = async ({ request }) => {
             name: name || `SVG_${new Date().toISOString().slice(0, 19)}`,
             code: code,  // Le code SVG généré
             date: new Date().toISOString().slice(0, 19).replace('T', ' '),  // Format: YYYY-MM-DD HH:mm:ss
-            prompt: prompt || ""  // Le prompt utilisé pour générer le SVG
+            prompt: prompt || "",  // Le prompt utilisé pour générer le SVG
+            history: history || "[]"  // L'historique de la conversation
         };
-        console.log("Données à sauvegarder:", { name: data.name, codeLength: data.code.length, prompt: data.prompt, date: data.date });
+        console.log("Données à sauvegarder:", { 
+            name: data.name, 
+            codeLength: data.code.length, 
+            prompt: data.prompt, 
+            date: data.date,
+            historyLength: data.history ? data.history.length : 0,
+            historyPreview: data.history ? data.history.substring(0, 100) + "..." : "vide"
+        });
 
         // Sauvegarde dans la collection 'svgs'
         console.log("Envoi vers PocketBase...");
