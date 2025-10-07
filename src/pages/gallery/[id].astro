@@ -101,7 +101,7 @@ if (svg && svg.history) {
                         {
                             (Array.isArray(conversationHistory) && conversationHistory.length > 0) ? (
                                 conversationHistory.map((msg: { role: string; content: string; }) => (
-                                    <div class={`chat ${msg.role === 'user' ? 'chat-start' : 'chat-end'}`}>
+                                    <div class={`chat ${msg.role === 'user' ? 'chat-end' : 'chat-start'}`}>
                                         <div class="chat-header opacity-60 text-xs mb-1">
                                             {msg.role === 'user' ? '👤 User' : '🤖 Assistant'}
                                         </div>
@@ -132,17 +132,16 @@ if (svg && svg.history) {
                                 id="chat-input"
                                 placeholder="Type a message to modify the SVG..." 
                                 class="input input-bordered flex-1"
-                                disabled
                             />
                             <button 
                                 type="submit"
                                 class="btn bg-purple-600 hover:bg-purple-700 text-white border-none"
-                                disabled
+                                id="send-btn"
                             >
                                 Send
                             </button>
                         </form>
-                        <p class="text-xs text-gray-500 mt-2">💡 Chat functionality coming soon!</p>
+                        <p class="text-xs text-gray-500 mt-2">💡 Enter a prompt to modify the SVG</p>
                     </div>
                 </div>
             </div>
@@ -150,8 +149,11 @@ if (svg && svg.history) {
     </div>
 </Layout>
 
-<script define:vars={{ svgCode: svg?.code, svgName: svg?.name }}>
+<script define:vars={{ svgCode: svg?.code, svgName: svg?.name, svgId: svg?.id, initialHistory: conversationHistory }}>
     //@ts-nocheck
+    
+    // Historique de conversation (copie de l'historique initial)
+    let conversationHistory = [...initialHistory];
     
     // Copier le code dans le presse-papier
     const copyBtn = document.getElementById('copy-code-btn');
@@ -181,8 +183,130 @@ if (svg && svg.history) {
             
             downloadBtn.textContent = '✅ Downloaded!';
             setTimeout(() => {
-                downloadBtn.textContent = '💾 Download SVG';
+                downloadBtn.textContent = '💾 Download';
             }, 2000);
+        });
+    }
+
+    // Gestion du chat
+    const chatForm = document.getElementById('chat-form');
+    const chatInput = document.getElementById('chat-input');
+    const chatHistory = document.getElementById('chat-history');
+    const svgDisplay = document.getElementById('svg-display');
+    const sendBtn = document.getElementById('send-btn');
+
+    // Ajouter un message dans l'historique visuel
+    function addMessageToUI(role, content) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `chat ${role === 'user' ? 'chat-end' : 'chat-start'}`;
+        
+        messageDiv.innerHTML = `
+            <div class="chat-header opacity-60 text-xs mb-1">
+                ${role === 'user' ? '👤 User' : '🤖 Assistant'}
+            </div>
+            <div class="chat-bubble ${role === 'user' ? 'bg-primary text-primary-content' : 'bg-secondary text-secondary-content'}">
+                <pre class="whitespace-pre-wrap text-sm">${content}</pre>
+            </div>
+            <div class="chat-footer opacity-60 text-xs mt-1">${role}</div>
+        `;
+        
+        chatHistory.appendChild(messageDiv);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+
+    // Fonction pour générer le SVG modifié
+    async function generateModifiedSVG(messages) {
+        try {
+            const response = await fetch('/api/generateSVG', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(messages)
+            });
+
+            const data = await response.json();
+            return data.svg;
+        } catch (error) {
+            console.error('Erreur lors de la génération:', error);
+            throw error;
+        }
+    }
+
+    // Fonction pour mettre à jour le SVG dans PocketBase
+    async function updateSVGInDatabase(newCode, newHistory) {
+        try {
+            const response = await fetch('/api/updateSVG', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: svgId,
+                    code: newCode,
+                    history: JSON.stringify(newHistory)
+                })
+            });
+
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Erreur lors de la mise à jour:', error);
+            throw error;
+        }
+    }
+
+    // Gérer la soumission du formulaire
+    if (chatForm) {
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const userMessage = chatInput.value.trim();
+            if (!userMessage) return;
+
+            // Désactiver l'input pendant le traitement
+            chatInput.disabled = true;
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending...';
+
+            // Ajouter le message utilisateur à l'UI
+            addMessageToUI('user', userMessage);
+            
+            // Ajouter à l'historique
+            conversationHistory.push({ role: 'user', content: userMessage });
+
+            // Afficher un spinner dans le SVG
+            svgDisplay.innerHTML = '<span class="loading loading-ring loading-xl"></span>';
+
+            try {
+                // Générer le nouveau SVG
+                const aiResponse = await generateModifiedSVG(conversationHistory);
+                
+                // Extraire le SVG de la réponse
+                const svgMatch = aiResponse.content.match(/<svg[\s\S]*?<\/svg>/i);
+                const newSvgCode = svgMatch ? svgMatch[0] : aiResponse.content;
+                
+                // Ajouter la réponse de l'IA à l'historique
+                conversationHistory.push(aiResponse);
+                
+                // Afficher le message de l'assistant (seulement le SVG)
+                addMessageToUI('assistant', newSvgCode);
+                
+                // Mettre à jour l'affichage du SVG
+                svgDisplay.innerHTML = newSvgCode;
+                
+                // Sauvegarder dans la base de données
+                await updateSVGInDatabase(newSvgCode, conversationHistory);
+                
+                console.log('✅ SVG mis à jour avec succès');
+            } catch (error) {
+                console.error('❌ Erreur:', error);
+                addMessageToUI('assistant', 'Désolé, une erreur est survenue lors de la génération.');
+                svgDisplay.innerHTML = svgCode; // Restaurer le SVG original
+            } finally {
+                // Réactiver l'input
+                chatInput.value = '';
+                chatInput.disabled = false;
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send';
+                chatInput.focus();
+            }
         });
     }
 </script>
