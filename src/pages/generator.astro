@@ -53,7 +53,7 @@ import Menu from "../components/Menu.astro";
         const res = await fetch("/api/generateSVG", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ prompt }),
+            body: JSON.stringify({prompt}),
         });
         const data = await res.json();
         return data.svg;
@@ -73,8 +73,66 @@ import Menu from "../components/Menu.astro";
         svgContainer.innerHTML = svgCode;
         generateButton.disabled = false;
     }
+
+    async function saveSVG() {
+        const svgOutput = document.getElementById("svg-output");
+        const promptElement = document.getElementById("user-prompt");
+
+        if (!svgOutput || !svgOutput.textContent.trim()) {
+            alert("Générez d'abord un SVG avant de sauvegarder !");
+            return;
+        }
+
+        const svgCode = svgOutput.textContent;
+        const prompt = promptElement ? promptElement.value : "";
+
+        // Demander un nom pour le SVG
+        const name = window.prompt(
+            "Nom pour votre SVG :",
+            `SVG_${new Date().toISOString().slice(0, 10)}`,
+        );
+
+        if (name === null) return; // Utilisateur a annulé
+
+        try {
+            const saveButton = document.getElementById("save-button");
+            saveButton.disabled = true;
+            saveButton.textContent = "Sauvegarde...";
+
+            const response = await fetch("/api/saveSVG", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: name,
+                    code: svgCode,
+                    prompt: prompt,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert("SVG sauvegardé avec succès !");
+            } else {
+                alert("Erreur : " + data.error);
+            }
+        } catch (error) {
+            alert("Erreur de sauvegarde : " + error.message);
+        } finally {
+            const saveButton = document.getElementById("save-button");
+            saveButton.disabled = false;
+            saveButton.textContent = "Save SVG";
+        }
+    }
+
     const generateButton = document.getElementById("generate-button");
     if (generateButton) {
         generateButton.addEventListener("click", handleSubmit);
+    }
+
+    // Connecter le bouton Save SVG
+    const saveButton = document.getElementById("save-button");
+    if (saveButton) {
+        saveButton.addEventListener("click", saveSVG);
     }
 </script>
