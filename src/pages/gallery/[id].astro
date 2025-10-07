@@ -232,24 +232,13 @@ if (svg && svg.history) {
     }
 
     // Fonction pour mettre à jour le SVG dans PocketBase
-    async function updateSVGInDatabase(newCode, newHistory) {
-        try {
-            const response = await fetch('/api/updateSVG', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id: svgId,
-                    code: newCode,
-                    history: JSON.stringify(newHistory)
-                })
-            });
-
-            const data = await response.json();
-            return data;
-        } catch (error) {
-            console.error('Erreur lors de la mise à jour:', error);
-            throw error;
-        }
+    async function update(updatedData) {
+        const response = await fetch("/api/updateSVG", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updatedData),
+        });
+        return response;
     }
 
     // Écouteur d'événement pour le formulaire de soumission
@@ -330,9 +319,19 @@ if (svg && svg.history) {
             conversationHistory = history;
 
             // Sauvegarder dans la base de données
-            await updateSVGInDatabase(svgCode, history);
-            
-            console.log('✅ SVG mis à jour avec succès');
+            const response = await update({
+                id: svgId,
+                code: svgCode,
+                history: JSON.stringify(history)
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                console.log('✅ SVG mis à jour avec succès');
+            } else {
+                console.warn('⚠️ Échec de la mise à jour:', data.error);
+                alert("Failed to update SVG: " + (data.error || 'Unknown error'));
+            }
         } catch (error) {
             console.error('❌ Erreur:', error);
             chatHistory.innerHTML += `
@@ -345,6 +344,7 @@ if (svg && svg.history) {
                 </div>
             `;
             svgDisplay.innerHTML = svgCode; // Restaurer le SVG original
+            alert("Failed to update SVG");
         } finally {
             // Réactiver l'input
             chatInput.disabled = false;
