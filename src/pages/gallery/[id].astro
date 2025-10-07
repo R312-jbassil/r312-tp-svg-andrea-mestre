@@ -1,5 +1,6 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import Menu from "../../components/Menu.astro";
 import pb from "../../utils/pb";
 import { Collections, type SvgRecord } from "../../utils/pocketbase-types";
 
@@ -33,6 +34,7 @@ if (svg && svg.history) {
 <Layout>
     <div class="h-screen bg-gradient-to-br from-purple-400 to-blue-500 flex flex-col">
         <div class="flex-none p-4">
+            <Menu />
             <!-- Header avec navigation -->
             <div class="flex justify-between items-center">
                 <h1 class="text-3xl font-bold text-white">{svg?.name || 'SVG Details'}</h1>

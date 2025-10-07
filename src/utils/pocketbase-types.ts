@@ -4,6 +4,7 @@
 
 export enum Collections {
 	Svg = "svgs",
+	Users = "users",
 }
 
 // Base record type
@@ -24,5 +25,19 @@ export interface SvgRecord extends BaseRecord {
 
 // Response type includes expand
 export interface SvgResponse extends SvgRecord {
+	expand?: Record<string, any>;
+}
+
+// User Record Type
+export interface UserRecord extends BaseRecord {
+	email: string;
+	username?: string;
+	name?: string;
+	avatar?: string;
+	verified: boolean;
+}
+
+// User Response type
+export interface UserResponse extends UserRecord {
 	expand?: Record<string, any>;
 }

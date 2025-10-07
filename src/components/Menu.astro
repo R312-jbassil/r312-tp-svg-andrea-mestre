@@ -1,9 +1,31 @@
+---
+const user = Astro.locals.user;
+---
+
 <div>
-    <div class="flex gap-4 mb-6">
+    <div class="flex gap-4 mb-6 items-center">
         <a href="/" class="btn btn-ghost text-white">Home</a>
         <a href="/generator" class="btn btn-ghost text-white bg-purple-600">
             Generator
         </a>
         <a href="/library" class="btn btn-ghost text-white">Library</a>
+        
+        <div class="flex-1"></div>
+        
+        {user && (
+            <div class="flex items-center gap-3">
+                <span class="text-white text-sm">
+                    👤 {user.email}
+                </span>
+                <form action="/api/logout" method="POST">
+                    <button 
+                        type="submit"
+                        class="btn btn-sm bg-red-600 hover:bg-red-700 text-white border-none"
+                    >
+                        Logout
+                    </button>
+                </form>
+            </div>
+        )}
     </div>
 </div>
