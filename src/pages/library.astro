@@ -6,13 +6,20 @@ import PocketBase from 'pocketbase';
 // Connexion à PocketBase
 const pb = new PocketBase('http://127.0.0.1:8090');
 
-// Récupération de tous les SVGs sauvegardés
+// Récupérer l'utilisateur connecté
+const user = Astro.locals.user;
+
+// Récupération des SVGs de l'utilisateur connecté uniquement
 let svgs = [];
 try {
-    const records = await pb.collection('svgs').getFullList({
-        sort: '-created', // Tri par date de création décroissante
-    });
-    svgs = records;
+    if (user) {
+        const records = await pb.collection('svgs').getFullList({
+            sort: '-created', // Tri par date de création décroissante
+            filter: `user = "${user.id}"`, // Filtrer par ID de l'utilisateur
+        });
+        svgs = records;
+        console.log(`📚 ${svgs.length} SVG(s) trouvé(s) pour l'utilisateur ${user.email}`);
+    }
 } catch (error) {
     console.error("Erreur lors de la récupération des SVGs:", error);
 }

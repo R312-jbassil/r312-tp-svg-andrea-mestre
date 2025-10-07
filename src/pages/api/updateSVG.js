@@ -1,16 +1,17 @@
 import PocketBase from 'pocketbase';
 const pb = new PocketBase('http://127.0.0.1:8090');
 
-export const POST = async ({ request }) => {
+export const POST = async ({ request, locals }) => {
     try {
         const body = await request.json();
+        const user = locals.user;
         
         // Support des deux formats de noms de champs
         const id = body.id;
         const code = body.code || body.code_svg;
         const history = body.history || body.chat_history;
         
-        console.log("🔄 Mise à jour du SVG:", { id, codeLength: code?.length, historyLength: history?.length });
+        console.log("🔄 Mise à jour du SVG:", { id, codeLength: code?.length, historyLength: history?.length, userId: user?.id });
 
         if (!id) {
             return new Response(JSON.stringify({ 
@@ -28,6 +29,29 @@ export const POST = async ({ request }) => {
                 error: 'Code SVG requis' 
             }), { 
                 status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        // Vérifier que le SVG appartient à l'utilisateur
+        try {
+            const existingSvg = await pb.collection('svgs').getOne(id);
+            if (existingSvg.user !== user?.id) {
+                console.error("⛔ Accès refusé: L'utilisateur ne peut pas modifier ce SVG");
+                return new Response(JSON.stringify({ 
+                    success: false,
+                    error: 'Vous n\'avez pas la permission de modifier ce SVG' 
+                }), { 
+                    status: 403,
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            }
+        } catch (e) {
+            return new Response(JSON.stringify({ 
+                success: false,
+                error: 'SVG non trouvé' 
+            }), { 
+                status: 404,
                 headers: { 'Content-Type': 'application/json' }
             });
         }

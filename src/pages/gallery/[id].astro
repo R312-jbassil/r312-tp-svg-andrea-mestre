@@ -5,6 +5,7 @@ import pb from "../../utils/pb";
 import { Collections, type SvgRecord } from "../../utils/pocketbase-types";
 
 const id = Astro.params.id;
+const user = Astro.locals.user;
 
 if (!id) {
     return Astro.redirect('/library');
@@ -15,6 +16,13 @@ let error: string | null = null;
 
 try {
     svg = await pb.collection(Collections.Svg).getOne(id);
+    
+    // Vérifier que le SVG appartient à l'utilisateur connecté
+    if (svg && user && svg.user !== user.id) {
+        console.error("⛔ Accès refusé: Ce SVG n'appartient pas à l'utilisateur connecté");
+        error = "Vous n'avez pas accès à ce SVG";
+        svg = null;
+    }
 } catch (e) {
     error = "SVG non trouvé";
     console.error("Erreur lors de la récupération du SVG:", e);
