@@ -215,7 +215,7 @@ if (svg && svg.history) {
     }
 
     // Fonction pour générer le SVG modifié
-    async function generateModifiedSVG(messages) {
+    async function generateSVG(messages) {
         try {
             const response = await fetch('/api/generateSVG', {
                 method: 'POST',
@@ -252,61 +252,105 @@ if (svg && svg.history) {
         }
     }
 
-    // Gérer la soumission du formulaire
-    if (chatForm) {
-        chatForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+    // Écouteur d'événement pour le formulaire de soumission
+    chatForm?.addEventListener('submit', async (e) => {
+        e.preventDefault(); // Empêche le rechargement de la page
+        
+        const userMessage = chatInput.value.trim();
+        if (!userMessage) return;
+
+        console.log("📝 Nouveau message:", userMessage);
+
+        // Créez un objet pour le prompt de l'utilisateur
+        let prompt = {
+            role: 'user',
+            content: userMessage
+        };
+
+        // Récupérez l'historique des messages
+        let history = [...conversationHistory];
+        history.push(prompt); // Ajoutez le nouveau prompt à l'historique
+
+        // Réinitialisez le champ de saisie
+        chatInput.value = '';
+
+        // Désactiver l'input pendant le traitement
+        chatInput.disabled = true;
+        sendBtn.disabled = true;
+        sendBtn.textContent = 'Sending...';
+
+        // Affichez un indicateur de chargement
+        svgDisplay.innerHTML = `<span class="loading loading-ring loading-xl"></span>`;
+        
+        // Ajoutez le prompt à l'historique du chat
+        chatHistory.innerHTML += `
+            <div class="chat chat-end">
+                <div class="chat-header opacity-60 text-xs mb-1">👤 User</div>
+                <div class="chat-bubble bg-primary text-primary-content">
+                    <pre class="whitespace-pre-wrap text-sm">${prompt.content}</pre>
+                </div>
+                <div class="chat-footer opacity-60 text-xs mt-1">user</div>
+            </div>
+        `;
+
+        try {
+            // Appelez la fonction pour générer le SVG
+            let aiResponse = await generateSVG(history);
             
-            const userMessage = chatInput.value.trim();
-            if (!userMessage) return;
-
-            // Désactiver l'input pendant le traitement
-            chatInput.disabled = true;
-            sendBtn.disabled = true;
-            sendBtn.textContent = 'Sending...';
-
-            // Ajouter le message utilisateur à l'UI
-            addMessageToUI('user', userMessage);
+            // Extraire le SVG de la réponse
+            const svgMatch = aiResponse.content.match(/<svg[\s\S]*?<\/svg>/i);
+            const svgCode = svgMatch ? svgMatch[0] : aiResponse.content;
             
-            // Ajouter à l'historique
-            conversationHistory.push({ role: 'user', content: userMessage });
+            // Mettre à jour la réponse avec seulement le code SVG extrait
+            aiResponse.content = svgCode;
+            
+            // Ajoutez la réponse de l'IA à l'historique
+            history.push(aiResponse);
 
-            // Afficher un spinner dans le SVG
-            svgDisplay.innerHTML = '<span class="loading loading-ring loading-xl"></span>';
+            console.log("svgCode: ", svgCode);
+            
+            // Mettez à jour l'affichage du SVG
+            svgDisplay.innerHTML = svgCode;
 
-            try {
-                // Générer le nouveau SVG
-                const aiResponse = await generateModifiedSVG(conversationHistory);
-                
-                // Extraire le SVG de la réponse
-                const svgMatch = aiResponse.content.match(/<svg[\s\S]*?<\/svg>/i);
-                const newSvgCode = svgMatch ? svgMatch[0] : aiResponse.content;
-                
-                // Ajouter la réponse de l'IA à l'historique
-                conversationHistory.push(aiResponse);
-                
-                // Afficher le message de l'assistant (seulement le SVG)
-                addMessageToUI('assistant', newSvgCode);
-                
-                // Mettre à jour l'affichage du SVG
-                svgDisplay.innerHTML = newSvgCode;
-                
-                // Sauvegarder dans la base de données
-                await updateSVGInDatabase(newSvgCode, conversationHistory);
-                
-                console.log('✅ SVG mis à jour avec succès');
-            } catch (error) {
-                console.error('❌ Erreur:', error);
-                addMessageToUI('assistant', 'Désolé, une erreur est survenue lors de la génération.');
-                svgDisplay.innerHTML = svgCode; // Restaurer le SVG original
-            } finally {
-                // Réactiver l'input
-                chatInput.value = '';
-                chatInput.disabled = false;
-                sendBtn.disabled = false;
-                sendBtn.textContent = 'Send';
-                chatInput.focus();
-            }
-        });
-    }
+            // Ajoutez le code SVG à l'historique du chat
+            chatHistory.innerHTML += `
+                <div class="chat chat-start">
+                    <div class="chat-header opacity-60 text-xs mb-1">🤖 Assistant</div>
+                    <div class="chat-bubble bg-secondary text-secondary-content">
+                        <pre class="whitespace-pre-wrap text-sm">${svgCode}</pre>
+                    </div>
+                    <div class="chat-footer opacity-60 text-xs mt-1">assistant</div>
+                </div>
+            `;
+
+            // Scroll vers le bas
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            // Mettre à jour l'historique global
+            conversationHistory = history;
+
+            // Sauvegarder dans la base de données
+            await updateSVGInDatabase(svgCode, history);
+            
+            console.log('✅ SVG mis à jour avec succès');
+        } catch (error) {
+            console.error('❌ Erreur:', error);
+            chatHistory.innerHTML += `
+                <div class="chat chat-start">
+                    <div class="chat-header opacity-60 text-xs mb-1">🤖 Assistant</div>
+                    <div class="chat-bubble bg-error text-error-content">
+                        <pre class="whitespace-pre-wrap text-sm">Désolé, une erreur est survenue lors de la génération.</pre>
+                    </div>
+                    <div class="chat-footer opacity-60 text-xs mt-1">assistant</div>
+                </div>
+            `;
+            svgDisplay.innerHTML = svgCode; // Restaurer le SVG original
+        } finally {
+            // Réactiver l'input
+            chatInput.disabled = false;
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Send';
+            chatInput.focus();
+        }
+    });
 </script>
